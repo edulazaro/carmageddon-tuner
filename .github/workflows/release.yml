@@ -15,8 +15,15 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    # Both `v1.0.0` and `1.0.0`, so a forgotten prefix does not silently
+    # produce a release with nothing but the source archives in it.
+    tags: ['v*', '[0-9]*']
+  # Lets you rerun the build for an existing tag from the Actions tab.
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build and attach the binaries to'
+        required: true
 
 permissions:
   contents: write
@@ -39,7 +46,11 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
+      # On a manual run, build the tag the user named rather than the default
+      # branch, so the binaries match what the release actually contains.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -115,7 +126,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.tag
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -124,6 +135,8 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
+          # Attaches to the named tag on a manual run, or to the pushed tag.
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: artifacts/*
           generate_release_notes: true
           body: |
