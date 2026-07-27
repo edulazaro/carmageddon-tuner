@@ -134,8 +134,9 @@ DOSBox already configured, so the data files sit right there on disk.
 *Disclosure: the G2A link is an affiliate link. Steam and GOG are not.*
 
 Background on the game, including how long it takes to beat, in Spanish:
-[Carmageddon](https://duracionde.com/carmageddon) ·
-[Carmageddon Max Pack](https://duracionde.com/carmageddon-max-pack)
+
+- [Carmageddon](https://duracionde.com/carmageddon)
+- [Carmageddon Max Pack](https://duracionde.com/carmageddon-max-pack)
 
 ## Legal
 
