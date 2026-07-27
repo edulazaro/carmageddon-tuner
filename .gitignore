@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output: the esbuild bundle, the SEA blob and the compiled binaries.
+# CI rebuilds these on every tag, so they are never committed. Each executable
+# is around 67 MB, since it carries the whole Node runtime.
+dist/
+*.exe
+*.tgz
+*.tar.gz
+
+# Where saving writes the edited game files, and any decrypted data alongside
+# it. That content belongs to Stainless Games.
+packed/
+out/
+decrypted/
+
+# Credentials. .npmrc can hold an auth token; leaking it would let anyone
+# publish under your account.
+.npmrc
+.env
+
+# npm and editor noise
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

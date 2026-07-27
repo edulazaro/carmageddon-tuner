@@ -1,0 +1,7 @@
+# Normalise line endings on commit. Without this, files committed from Windows
+# carry CRLF, and the shell steps in the CI workflow break on Linux and macOS
+# with errors like "bad interpreter: /bin/bash^M".
+* text=auto eol=lf
+*.png binary
+*.zip binary
+*.exe binary

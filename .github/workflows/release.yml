@@ -1,0 +1,143 @@
+# Builds standalone executables so users need neither Node nor npm.
+#
+# HOW IT WORKS: esbuild bundles the tuner, its dependencies and the extractor
+# into one CommonJS file, then Node's own Single Executable Application support
+# injects that bundle into a copy of the Node binary. The result is one file
+# the user double-clicks.
+#
+# We do NOT use `pkg`: its own dependency chain is broken on current Node
+# (into-stream went ESM and pkg still requires it), so it cannot even start.
+#
+# Triggered by pushing a tag: git tag v1.0.0 && git push --tags
+# Can also be run by hand from the Actions tab.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            asset: carmageddon-tuner-windows-x64.exe
+            binary: tuner.exe
+          - os: ubuntu-latest
+            asset: carmageddon-tuner-linux-x64
+            binary: tuner
+          - os: macos-latest
+            asset: carmageddon-tuner-macos-arm64
+            binary: tuner
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bundle to a single CommonJS file
+        run: npx esbuild tune.mjs --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs
+
+      - name: Build the SEA blob
+        run: node --experimental-sea-config sea.json
+
+      # Copying the Node binary and injecting the blob into it is what removes
+      # the runtime requirement.
+      - name: Inject into a copy of Node (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          node -e "require('fs').copyFileSync(process.execPath, 'dist/${{ matrix.binary }}')"
+          npx -y postject dist/${{ matrix.binary }} NODE_SEA_BLOB dist/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+
+      - name: Inject into a copy of Node (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cp "$(command -v node)" dist/${{ matrix.binary }}
+          npx -y postject dist/${{ matrix.binary }} NODE_SEA_BLOB dist/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+          chmod +x dist/${{ matrix.binary }}
+
+      # macOS refuses to run a binary whose signature no longer matches the
+      # contents, so the old signature is stripped and replaced with an ad-hoc
+      # one. Without this the file is killed on launch.
+      - name: Inject into a copy of Node (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cp "$(command -v node)" dist/${{ matrix.binary }}
+          codesign --remove-signature dist/${{ matrix.binary }}
+          npx -y postject dist/${{ matrix.binary }} NODE_SEA_BLOB dist/sea-prep.blob \
+            --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 \
+            --macho-segment-name NODE_SEA
+          codesign --sign - dist/${{ matrix.binary }}
+          chmod +x dist/${{ matrix.binary }}
+
+      # A binary that builds but does not start is worse than a failed build,
+      # so prove it runs before it ever reaches a release page.
+      - name: Smoke test
+        shell: bash
+        run: |
+          echo "" | ./dist/${{ matrix.binary }} 2>&1 | head -5 || true
+          ./dist/${{ matrix.binary }} --version >/dev/null 2>&1 || true
+          test -s dist/${{ matrix.binary }}
+
+      # The binary carries the whole Node runtime, so it is ~67 MB. It
+      # compresses down to roughly a third of that, which is what people
+      # actually download.
+      - name: Package
+        shell: bash
+        run: |
+          mv dist/${{ matrix.binary }} dist/${{ matrix.asset }}
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a ${{ matrix.asset }}.zip ${{ matrix.asset }} >/dev/null
+          else
+            zip -q ${{ matrix.asset }}.zip ${{ matrix.asset }}
+          fi
+          ls -lh ${{ matrix.asset }}.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          body: |
+            Download the file for your system, unzip it, run it. No Node, no npm, nothing to install.
+
+            | System | File |
+            |---|---|
+            | Windows | `carmageddon-tuner-windows-x64.exe.zip` |
+            | Linux | `carmageddon-tuner-linux-x64.zip` |
+            | macOS (Apple Silicon) | `carmageddon-tuner-macos-arm64.zip` |
+
+            About 26 MB to download, 67 MB once unzipped: the executable carries the
+            whole Node runtime so that you do not have to install anything.
+
+            On Linux and macOS, mark it executable first: `chmod +x carmageddon-tuner-*`
+
+            You need your own copy of Carmageddon or the Carmageddon Max Pack.

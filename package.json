@@ -1,0 +1,48 @@
+{
+  "name": "carmageddon-tuner",
+  "version": "1.0.0",
+  "description": "Terminal UI for editing Carmageddon (1997) car and opponent stats",
+  "keywords": [
+    "carmageddon",
+    "modding",
+    "reverse-engineering",
+    "retro-gaming",
+    "tui"
+  ],
+  "author": "Edu Lázaro (https://edulazaro.com)",
+  "homepage": "https://github.com/edulazaro/carmageddon-tuner#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edulazaro/carmageddon-tuner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/edulazaro/carmageddon-tuner/issues"
+  },
+  "type": "module",
+  "bin": {
+    "carmageddon-tuner": "tune.mjs"
+  },
+  "files": [
+    "tune.mjs",
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node tune.mjs",
+    "bundle": "esbuild tune.mjs --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs",
+    "blob": "node --experimental-sea-config sea.json",
+    "build": "npm run bundle && npm run blob"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.0.0",
+    "carmageddon-extractor": "^1.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "license": "MIT"
+}
