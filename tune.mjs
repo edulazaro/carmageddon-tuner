@@ -15,7 +15,7 @@
 ======================================== */
 import path from 'node:path';
 import { select, input, confirm, search } from '@inquirer/prompts';
-import { createProject, loadSettings, saveSettings, looksLikeGameData } from './lib/project.mjs';
+import { createProject, loadSettings, saveSettings, findDataFolders } from './lib/project.mjs';
 
 /* Colours degrade to nothing when output is piped or the terminal is basic,
    which keeps old Windows consoles readable. */
@@ -34,22 +34,46 @@ async function ask(fn) {
     }
 }
 
+/* Takes whatever the user typed and turns it into one data folder.
+   The install root is enough: nobody should have to type the `/CARMA/DATA`
+   tail that never changes. A Max Pack holds two complete games though, both
+   with 41 cars, so when several turn up the user picks rather than the tool
+   guessing and quietly editing the wrong one. */
 async function pickGameFolder() {
     const settings = loadSettings();
-    let dir = process.argv[2] || settings.gameDir;
+    let typed = process.argv[2] || settings.gameDir;
 
-    while (!looksLikeGameData(dir)) {
-        if (dir) console.log(red(`\nThat does not look like a CARMA/DATA folder: ${dir}`));
+    for (;;) {
+        const found = typed ? findDataFolders(typed) : [];
+
+        if (found.length === 1) {
+            const dir = found[0].path;
+            if (settings.gameDir !== dir) saveSettings({ ...settings, gameDir: dir });
+            return dir;
+        }
+
+        if (found.length > 1) {
+            const pick = await ask(() => select({
+                message: 'Which installation?',
+                choices: found.map(f => ({
+                    name: `${f.label}${dim('  ' + f.cars + ' cars  ' + f.path)}`,
+                    value: f.path,
+                })),
+                loop: false,
+            }));
+            if (pick === BACK) process.exit(0);
+            saveSettings({ ...settings, gameDir: pick });
+            return pick;
+        }
+
+        if (typed) console.log(red(`\nNo Carmageddon data found in: ${typed}`));
         const answer = await ask(() => input({
-            message: 'Path to your CARMA/DATA folder',
-            default: dir || '',
+            message: 'Path to your Carmageddon folder',
+            default: typed || '',
         }));
         if (answer === BACK) process.exit(0);
-        dir = answer.trim().replace(/^["']|["']$/g, '');
+        typed = answer.trim().replace(/^["']|["']$/g, '');
     }
-
-    if (settings.gameDir !== dir) saveSettings({ ...settings, gameDir: dir });
-    return dir;
 }
 
 /** Formats one field as a menu row. */

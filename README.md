@@ -19,14 +19,16 @@ executable first with `chmod +x`.
 ## Usage
 
 ```sh
-carmageddon-tuner [path-to-CARMA/DATA]
+carmageddon-tuner [game folder]
 
 # for example
-carmageddon-tuner "D:/Games/Carmageddon/CARMA/DATA"
+carmageddon-tuner "D:/Games/Carmageddon"
 ```
 
-The path is remembered between runs, so after the first time just run it with
-no arguments.
+Point it at the install root or at the `DATA` folder, whichever you have handy.
+A **Max Pack** installs two complete games side by side, so there it asks which
+one you mean instead of guessing. The choice is remembered, so after the first
+run just launch it with no arguments.
 
 ## Running from source
 
@@ -83,10 +85,22 @@ filters by label or value.
 - Changes live in memory until you save, so quitting without saving changes
   nothing on disk.
 
+## Getting the game
+
+**You need your own copy of Carmageddon or the Carmageddon Max Pack.**
+
+- [Steam](https://store.steampowered.com/app/282010/Carmageddon_Max_Pack/)
+- [GOG](https://www.gog.com/game/carmageddon_max_pack)
+- [G2A](https://www.g2a.com/carmageddon-max-pack-steam-key-global-i10000008297002?gtag=e7e5b5506b)
+
+The GOG release is the handiest one for this: it is DRM-free and ships with
+DOSBox already configured, so the data files sit right there on disk.
+
+*Disclosure: the G2A link is an affiliate link. Steam and GOG are not.*
+
 ## Legal
 
-**You need your own copy of Carmageddon or the Carmageddon Max Pack.** This
-reads and rewrites files from an installation you already own. Nothing is
+This reads and rewrites files from an installation you already own. Nothing is
 bundled here: no game assets, no game data, only the code that edits them.
 
 ## Author
