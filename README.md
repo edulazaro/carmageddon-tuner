@@ -16,6 +16,16 @@ About 26 MB to download, 67 MB unzipped: the executable carries the whole Node
 runtime so you do not have to install one. On Linux and macOS, mark it
 executable first with `chmod +x`.
 
+### "Windows protected your PC"
+
+SmartScreen blocks any executable that is not signed by a recognised publisher,
+whatever it does. Click **More info**, then **Run anyway**.
+
+This one is not signed because a code-signing certificate costs a few hundred
+euros a year and, since 2023, has to live on a hardware token, which does not
+fit a free CI pipeline. If you would rather not take that on faith, the
+[source](../../) is here and `npm run build` reproduces the same binary.
+
 ## Usage
 
 ```sh
@@ -43,15 +53,40 @@ The cipher itself lives in
 [`carmageddon-extractor`](https://github.com/edulazaro/carmageddon-extractor),
 pulled in from npm, so there is only ever one copy of it.
 
-To build the standalone executable yourself:
+### How the executable is built
 
-```sh
-npm run build     # bundles with esbuild, then makes the SEA blob
+There are three steps, and `sea.json` configures the middle one:
+
+```
+tune.mjs + its dependencies
+      |  esbuild            bundles everything into one CommonJS file
+      v
+dist/bundle.cjs  (~90 KB)
+      |  node --experimental-sea-config sea.json
+      v
+dist/sea-prep.blob          the program, in a form Node can carry inside itself
+      |  postject            injects the blob into a copy of the node binary
+      v
+tuner.exe  (~67 MB)         a node binary that runs this app instead of a script
 ```
 
-Then inject the blob into a copy of Node, exactly as
-`.github/workflows/release.yml` does. That workflow builds Windows, Linux and
+`sea.json` only names the bundle to embed and where to put the blob, plus a flag
+that silences the "this is experimental" banner users would otherwise see on
+every launch. Node insists on reading those settings from a file, which is why
+it exists at all.
+
+The first two steps run locally:
+
+```sh
+npm run build     # bundle with esbuild, then make the SEA blob
+```
+
+The injection step is platform-specific, so see
+`.github/workflows/release.yml` for it. That workflow builds Windows, Linux and
 macOS binaries on every tag.
+
+`pkg`, the usual tool for this, is not used: its own dependency chain is broken
+on current Node versions and it fails before it starts.
 
 ## What it edits
 
@@ -97,6 +132,10 @@ The GOG release is the handiest one for this: it is DRM-free and ships with
 DOSBox already configured, so the data files sit right there on disk.
 
 *Disclosure: the G2A link is an affiliate link. Steam and GOG are not.*
+
+Background on the game, including how long it takes to beat, in Spanish:
+[Carmageddon](https://duracionde.com/carmageddon) ·
+[Carmageddon Max Pack](https://duracionde.com/carmageddon-max-pack)
 
 ## Legal
 

@@ -153,4 +153,10 @@ jobs:
 
             On Linux and macOS, mark it executable first: `chmod +x carmageddon-tuner-*`
 
+            **Windows will warn you.** SmartScreen blocks any unsigned executable, whatever
+            it does. Click *More info*, then *Run anyway*. Signing needs a certificate that
+            costs a few hundred euros a year and has to live on a hardware token, which does
+            not fit a free build pipeline. The source is in this repo and `npm run build`
+            reproduces the same binary.
+
             You need your own copy of Carmageddon or the Carmageddon Max Pack.
